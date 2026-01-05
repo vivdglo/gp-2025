@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Healthcare of money</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="mediaqueries.css" />
+</head>
+
+<body>
+  <video id="bg-camera" autoplay muted playsinline></video>
+  <div class="camera-overlay"></div>
+
+  <nav id="desktop-nav">
+    <div class="logo">Healthcare of 2050</div>
+  </nav>
+
+  <section id="profile">
+    <div class="section__text">
+      <p class="section__text_p1">What is your monthly salary?</p>
+
+      <div class="number-control">
+        <button id="minus">−</button>
+        <span id="value">2900</span>
+        <button id="plus">+</button>
+      </div>
+
+      <div class="btn-container">
+        <button class="btn btn-color-1" onclick="handleSend()">Send</button>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    let value = 2900;
+
+    const valueDisplay = document.getElementById("value");
+    const plusBtn = document.getElementById("plus");
+    const minusBtn = document.getElementById("minus");
+
+    plusBtn.addEventListener("click", () => {
+      value += 100;
+      valueDisplay.textContent = value;
+    });
+
+    minusBtn.addEventListener("click", () => {
+      value -= 100;
+      valueDisplay.textContent = value;
+    });
+
+    function handleSend() {
+      if (value >= 3000) {
+        window.location.href = "camera-rich.html";
+      } else {
+        window.location.href = "camera.html";
+      }
+    }
+
+    const bgVideo = document.getElementById("bg-camera");
+    async function startBackgroundCamera() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "user" },
+          audio: false
+        });
+        bgVideo.srcObject = stream;
+      } catch (error) {
+        console.warn("Background camera blocked.", error);
+      }
+    }
+    startBackgroundCamera();
+  </script>
+</body>
+</html>
