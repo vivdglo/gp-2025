@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rich Camera V2</title>
+
+  <link rel="stylesheet" href="style.css" />
+
+  <style>
+    html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: black; overflow: hidden; }
+
+    .stage { position: fixed; inset: 0; overflow: hidden; }
+
+    video {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1);
+      z-index: 1;
+      filter: contrast(1.15) saturate(1.2) hue-rotate(-12deg) brightness(1.03);
+    }
+
+    /* Minimal rich blue overlay (kept from your old rich page) */
+    .rich-blue-filter {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      pointer-events: none;
+      background: rgba(255, 0, 0, 0.595);
+      mix-blend-mode: screen;
+    }
+
+    /* === Panels (same as old rich) === */
+    .panel {
+      background: rgba(0, 0, 0, 0.42);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 1.2rem;
+      padding: 1.2rem 1.2rem;
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      overflow: hidden;
+    }
+
+    .panel-title {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      font-size: 0.95rem;
+      font-weight: 700;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      opacity: 0.9;
+      margin-bottom: 0.9rem;
+    }
+
+    /* === Face overlays === */
+    #faceBox {
+      position: absolute;
+      border: 3px solid red;
+      background: transparent;
+      box-sizing: border-box;
+      left: -9999px;
+      top: -9999px;
+      width: 120px;
+      height: 120px;
+      z-index: 6;
+      pointer-events: none;
+    }
+
+    #patientTag {
+      position: absolute;
+      left: -9999px;
+      top: -9999px;
+      z-index: 7;
+      pointer-events: none;
+
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+
+      padding: 0.35rem 0.7rem;
+      border-radius: 999px;
+      border: 2px solid red;
+      background: rgba(0,0,0,0.6);
+      color: white;
+
+      font: 13px/1 system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+
+    .tag-icon {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: red;
+      display: inline-block;
+    }
+
+    .tag-text { display: flex; flex-direction: column; line-height: 1.1; }
+    .tag-title { font-weight: 700; font-size: 12px; letter-spacing: 0.06em; }
+    .tag-sub { font-size: 10px; opacity: 0.8; letter-spacing: 0.06em; }
+
+    .back-btn { position: fixed; top: 1.5rem; left: 1.5rem; z-index: 10; }
+
+    #status {
+      position: fixed;
+      left: 1.5rem;
+      bottom: 1.5rem;
+      z-index: 10;
+      color: #fff;
+      background: rgba(0,0,0,0.55);
+      padding: 0.6rem 0.8rem;
+      border-radius: 0.8rem;
+      font: 14px/1.3 system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      max-width: 92vw;
+    }
+
+    /* === HUD overlay (same approach as old rich) === */
+    .hud {
+      position: absolute;
+      inset: 0;
+      z-index: 4; /* above blue filter, below face box/tag */
+      display: flex;
+      justify-content: space-between;
+      padding: 4vh 4vw;
+
+      opacity: 0;
+      transition: opacity 2.5s ease;
+      pointer-events: none;
+    }
+
+    .hud.visible { opacity: 0.88; }
+    .hidden { opacity: 0; }
+
+    .hud-left {
+      width: 34%;
+      display: flex;
+      flex-direction: column;
+      gap: 1.4rem;
+    }
+
+    .hud-right {
+  width: 34%;
+  display: flex;              /* stable stacking */
+  flex-direction: column;
+  gap: 1.1rem;
+  max-height: calc(100vh - 8vh);
+}
+
+
+    .organ-row {
+      display: flex;
+      align-items: center;
+      gap: 1.1rem;
+
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      font-size: 1.05rem;
+      letter-spacing: 0.02em;
+      opacity: 0.92;
+    }
+
+    .organ-row img {
+      width: 70px;
+      height: auto;
+      filter: saturate(1.1);
+    }
+
+    .organ-row span { white-space: nowrap; }
+
+    /* Heart pulse animation to attract attention */
+/* Stronger pulse for the heart icon */
+.pulse-heart {
+  animation: heartPulse 0.95s ease-in-out infinite; /* faster */
+  transform-origin: center;
+  will-change: transform;
+  filter: saturate(1.25) drop-shadow(0 0 18px rgba(255, 0, 0, 0.45));
+}
+
+@keyframes heartPulse {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.22); } /* stronger zoom */
+  100% { transform: scale(1); }
+}
+
+/* Red hollow box for the cardiac row */
+.cardiac-alert {
+  border: 2px solid rgba(255, 0, 0, 0.85);
+  border-radius: 1rem;
+  padding: 0.75rem 0.9rem;
+  background: rgba(0, 0, 0, 0.18); /* subtle, keeps it hollow */
+}
+
+/* Make the cardiac text red + bigger */
+.cardiac-alert .cardiac-text {
+  color: rgba(255, 80, 80, 0.98);
+  font-size: 1.25rem;   /* bigger than other rows */
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+/* Optional: make the other organ rows slightly dimmer for contrast */
+.organ-row:not(.cardiac-alert) {
+  opacity: 0.88;
+}
+
+
+    .organ-row {
+  overflow: visible;
+}
+    .hud-graph { width: 100%; }
+
+    .hud-text {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      font-size: 1.0rem;
+      line-height: 1.55;
+    }
+
+    .hud-text ul { list-style: none; padding: 0; margin: 0; }
+    .hud-text li { opacity: 0.95; margin-bottom: 0.65rem; }
+
+    /* Red danger bullet: "!" */
+    .danger-bullet {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      background: rgb(128, 0, 32); /* same red family as your UI */
+      color: white;
+      font-weight: 800;
+      font-size: 12px;
+      margin-right: 0.6rem;
+      transform: translateY(-1px);
+    }
+
+    .danger-text { color: rgba(255,255,255,0.95); }
+
+    .agent-panel {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 0.9rem;
+
+  min-height: 280px;   /* NEW */
+}
+
+.agent-content {
+  display: grid;
+  grid-template-columns: 38% 1fr; /* give text more space */
+  gap: 1.2rem;
+  align-items: start;
+}
+
+
+    .hud-agent {
+      width: 100%;
+      height: auto;
+      max-height: 220px;
+      object-fit: contain;
+      opacity: 0.95;
+      justify-self: end;
+    }
+
+    .agent-message {
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: rgba(255,255,255,0.95);
+
+  max-height: 220px;     /* keeps layout clean */
+  overflow: auto;        /* scroll if needed */
+  padding-right: 0.25rem;
+}
+/* AI AGENT ALERT STATES */
+.agent-alert {
+  color: rgb(244, 244, 244);
+  font-weight: 800;
+  font-size: 1.05rem;
+  letter-spacing: 0.01em;
+}
+
+.agent-warning {
+  color: rgba(250, 250, 250, 0.9);
+}
+
+.agent-muted {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.agent-panel { flex: 1; }
+
+
+
+    .agent-message p { margin: 0 0 0.75rem 0; }
+    .agent-muted { opacity: 0.8; }
+
+    .cardiac-alert {
+  animation: alertGlow 1.6s ease-in-out infinite;
+}
+
+@keyframes alertGlow {
+  0%, 100% { box-shadow: 0 0 0 rgba(255,0,0,0); }
+  50%      { box-shadow: 0 0 22px rgba(255,0,0,0.25); }
+}
+/* === AMBULANCE TIMER === */
+.ambulance-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.ambulance-timer {
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  font-size: 3.2rem;
+  line-height: 1;
+  text-align: left;
+
+  /* subtle emphasis */
+  text-shadow: 0 0 18px rgba(255, 255, 255, 0.12);
+}
+
+.timer-sep {
+  opacity: 0.8;
+  margin: 0 0.2rem;
+}
+
+.ambulance-subtext {
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+  font-size: 0.95rem;
+  opacity: 0.85;
+}
+
+ 
+ 
+ </style>
+</head>
+
+<body>
+  <button class="back-btn" onclick="location.href='index.html'">Back</button>
+
+  <div class="stage" id="stage">
+    <video id="video" autoplay playsinline muted></video>
+
+    <!-- blue filter -->
+    <div class="rich-blue-filter"></div>
+
+    <!-- HUD -->
+    <div id="richHUD" class="hud hidden">
+      <!-- LEFT: ORGAN METRICS -->
+      <div class="hud-left panel">
+        <div class="panel-title">Current health</div>
+
+        <div class="organ-row">
+          <img src="assets/organ-brain.png" alt="Brain">
+          <span>Neural activity — 98%</span>
+        </div>
+
+        <div class="organ-row">
+          <img src="assets/organ-lungs.png" alt="Lungs">
+          <span>Respiratory — 89%</span>
+        </div>
+
+        <!-- HEART: pulse + 15% -->
+        <div class="organ-row cardiac-alert">
+            <img src="assets/organ-heart.png" alt="Heart" class="pulse-heart">
+            <span class="cardiac-text">Cardiac — 15%</span>
+          </div>
+          
+
+        <div class="organ-row">
+          <img src="assets/organ-liver.png" alt="Liver">
+          <span>Hepatic — 75%</span>
+        </div>
+
+        <div class="organ-row">
+          <img src="assets/organ-kidneys.png" alt="Kidneys">
+          <span>Renal — 85%</span>
+        </div>
+
+        <div class="organ-row">
+          <img src="assets/organ-stomach.png" alt="Stomach">
+          <span>Gastric — 70%</span>
+        </div>
+
+        <div class="organ-row">
+          <img src="assets/organ-colon.png" alt="Colon">
+          <span>Digestive — 88%</span>
+        </div>
+      </div>
+
+      <!-- RIGHT SIDE: analysis, recommendation, agent -->
+<!-- RIGHT SIDE: timer, recommendation, agent -->
+<div class="hud-right">
+
+    <div class="panel ambulance-panel">
+      <div class="panel-title">Premium helicopter will arrive in…</div>
+  
+      <div class="ambulance-timer" aria-label="Ambulance countdown timer">
+        <span id="timerMinutes">05</span><span class="timer-sep">:</span><span id="timerSeconds">00</span>
+      </div>
+  
+      <div class="ambulance-subtext">
+        Live dispatch tracking active.
+      </div>
+    </div>
+  
+    <div class="panel hud-text">
+      <div class="panel-title">Recommendation</div>
+      <ul>
+        <li><span class="danger-bullet">!</span><span class="danger-text">Severe cardiac failure indicators detected (life-threatening risk).</span></li>
+        <li><span class="danger-bullet">!</span><span class="danger-text">Immediate surgery required to prevent acute cardiac event.</span></li>
+        <li><span class="danger-bullet">!</span><span class="danger-text">High probability of sudden collapse without emergency response. Please remain seated.</span></li>
+      </ul>
+    </div>
+  
+    <div class="panel agent-panel">
+      <div class="panel-title">AI agent</div>
+  
+      <div class="agent-content">
+        <img src="assets/AIassistant for rich.png" class="hud-agent" alt="AI Agent">
+  
+        <div class="agent-message">
+            <p class="agent-alert">
+              Severe heart problems detected.
+            </p>
+            <p class="agent-warning">
+              Premium response initiated: a premium helicopter has been sent to your registered address and will arrive in approximately 5 minutes.
+            </p>
+            <p class="agent-muted">
+            Continuous monitoring is active until arrival.
+            </p>
+          </div>
+          
+      </div>
+    </div>
+  
+  </div>
+  
+
+    <!-- tracking overlays -->
+    <div id="faceBox"></div>
+
+    <div id="patientTag" class="rich">
+      <span class="tag-icon"></span>
+      <div class="tag-text">
+        <div class="tag-title">Privileged patient</div>
+        <div class="tag-sub">Access tier: PREMIUM </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="status">Diagnosing...</div>
+
+  <!-- TensorFlow + BlazeFace -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface@0.0.7/dist/blazeface.min.js"></script>
+
+  <script>
+    const videoEl = document.getElementById("video");
+    const stageEl = document.getElementById("stage");
+    const faceBox = document.getElementById("faceBox");
+    const patientTag = document.getElementById("patientTag");
+    const statusEl = document.getElementById("status");
+    const richHUD = document.getElementById("richHUD");
+    let hudShown = false;
+
+// === Ambulance countdown ===
+const timerMinutesEl = document.getElementById("timerMinutes");
+const timerSecondsEl = document.getElementById("timerSeconds");
+
+let ambulanceSecondsRemaining = 5 * 60; // 5 minutes
+let ambulanceTimerStarted = false;
+let ambulanceIntervalId = null;
+
+function renderAmbulanceTimer() {
+  const m = Math.floor(ambulanceSecondsRemaining / 60);
+  const s = ambulanceSecondsRemaining % 60;
+  timerMinutesEl.textContent = String(m).padStart(2, "0");
+  timerSecondsEl.textContent = String(s).padStart(2, "0");
+}
+
+function startAmbulanceTimerOnce() {
+  if (ambulanceTimerStarted) return;
+  ambulanceTimerStarted = true;
+
+  // render immediately so user sees it switch to "active"
+  renderAmbulanceTimer();
+
+  ambulanceIntervalId = setInterval(() => {
+    if (ambulanceSecondsRemaining <= 0) {
+      ambulanceSecondsRemaining = 0;
+      renderAmbulanceTimer();
+      clearInterval(ambulanceIntervalId);
+      return;
+    }
+    ambulanceSecondsRemaining -= 1;
+    renderAmbulanceTimer();
+  }, 1000);
+}
+
+// initial render (shows 05:00 before face detection)
+renderAmbulanceTimer();
+
+
+    function hideOverlays() {
+      faceBox.style.left = "-9999px";
+      faceBox.style.top = "-9999px";
+      patientTag.style.left = "-9999px";
+      patientTag.style.top = "-9999px";
+    }
+
+    function placeSquareAndTagFromSourceBBox(srcX, srcY, srcW, srcH) {
+      const rect = stageEl.getBoundingClientRect();
+      const screenW = rect.width;
+      const screenH = rect.height;
+
+      const vidW = videoEl.videoWidth;
+      const vidH = videoEl.videoHeight;
+      if (!vidW || !vidH) return;
+
+      // object-fit: cover scaling
+      const scale = Math.max(screenW / vidW, screenH / vidH);
+      const dispW = vidW * scale;
+      const dispH = vidH * scale;
+
+      const offsetX = (screenW - dispW) / 2;
+      const offsetY = (screenH - dispH) / 2;
+
+      let x = offsetX + srcX * scale;
+      let y = offsetY + srcY * scale;
+      let w = srcW * scale;
+      let h = srcH * scale;
+
+      // mirror correction
+      x = screenW - x - w;
+
+      // square around face
+      const s = Math.max(w, h);
+      const cx = x + w / 2;
+      const cy = y + h / 2;
+
+      const left = cx - s / 2;
+      const top = cy - s / 2;
+
+      faceBox.style.left = `${left}px`;
+      faceBox.style.top = `${top}px`;
+      faceBox.style.width = `${s}px`;
+      faceBox.style.height = `${s}px`;
+
+      // tag above-left of square
+      patientTag.style.left = `${Math.max(12, left)}px`;
+      patientTag.style.top = `${Math.max(12, top - 34)}px`;
+    }
+
+    async function startCamera() {
+      statusEl.textContent = "Requesting camera…";
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      videoEl.srcObject = stream;
+
+      await new Promise((resolve) => {
+        if (videoEl.readyState >= 2) resolve();
+        else videoEl.onloadedmetadata = () => resolve();
+      });
+
+      try { await videoEl.play(); } catch {}
+    }
+
+    async function start() {
+      try {
+        await startCamera();
+      } catch (e) {
+        console.error(e);
+        statusEl.textContent = "Camera permission denied/unavailable.";
+        return;
+      }
+
+      statusEl.textContent = "Loading face model…";
+      let model;
+      try {
+        model = await blazeface.load();
+      } catch (e) {
+        console.error(e);
+        statusEl.textContent = "Model failed to load (check internet/CDN).";
+        return;
+      }
+
+      statusEl.textContent = "Identifying the patient…";
+
+      async function loop() {
+        try {
+          const faces = await model.estimateFaces(videoEl, false);
+
+          if (faces && faces.length > 0) {
+            const f = faces[0];
+            const tl = f.topLeft;
+            const br = f.bottomRight;
+
+            const x = tl[0];
+            const y = tl[1];
+            const w = br[0] - tl[0];
+            const h = br[1] - tl[1];
+
+            placeSquareAndTagFromSourceBBox(x, y, w, h);
+
+            statusEl.textContent = "Face detected";
+            startAmbulanceTimerOnce();
+
+            if (!hudShown) {
+              richHUD.classList.add("visible");
+              richHUD.classList.remove("hidden");
+              hudShown = true;
+            }
+          } else {
+            statusEl.textContent = "No face";
+            hideOverlays();
+
+            richHUD.classList.remove("visible");
+            richHUD.classList.add("hidden");
+            hudShown = false;
+          }
+        } catch (e) {
+          console.error(e);
+          statusEl.textContent = "Detection error (see Console).";
+          hideOverlays();
+          return;
+        }
+
+        requestAnimationFrame(loop);
+      }
+
+      loop();
+    }
+
+    start();
+  </script>
+</body>
+</html>

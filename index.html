@@ -33,7 +33,14 @@
     </div>
   </section>
 
+  <!-- NEW: bottom version selector -->
+  <div class="version-switch" aria-label="Prototype version selector">
+    <button id="v1Btn" class="version-btn is-active" type="button">Version 1</button>
+    <button id="v2Btn" class="version-btn" type="button">Version 2</button>
+  </div>
+
   <script>
+    // salary
     let value = 2900;
 
     const valueDisplay = document.getElementById("value");
@@ -50,14 +57,48 @@
       valueDisplay.textContent = value;
     });
 
-    function handleSend() {
-      if (value >= 3000) {
-        window.location.href = "camera-rich.html";
-      } else {
-        window.location.href = "camera.html";
-      }
+    // NEW: version state (default Version 1)
+    let selectedVersion = 1;
+
+    const v1Btn = document.getElementById("v1Btn");
+    const v2Btn = document.getElementById("v2Btn");
+
+    function setVersion(v) {
+      selectedVersion = v;
+
+      // button highlight (red when active)
+      v1Btn.classList.toggle("is-active", v === 1);
+      v2Btn.classList.toggle("is-active", v === 2);
     }
 
+    v1Btn.addEventListener("click", () => setVersion(1));
+    v2Btn.addEventListener("click", () => setVersion(2));
+
+    function handleSend() {
+  const isPremium = value >= 3000;
+
+  // Version 1 targets (existing)
+  const v1Premium = "camera-rich.html";
+  const v1Basic   = "camera.html";
+
+  // Version 2 targets (new logic requested)
+  // - Basic should reuse Version 1 basic page
+  // - Premium should go to a minimal blue-hue camera page
+  const v2Premium = "camera-rich-v2.html";
+  const v2Basic   = "camera.html"; // same as Version 1 basic
+
+  let target;
+  if (selectedVersion === 2) {
+    target = isPremium ? v2Premium : v2Basic;
+  } else {
+    target = isPremium ? v1Premium : v1Basic;
+  }
+
+  window.location.href = target;
+}
+
+
+    // background camera
     const bgVideo = document.getElementById("bg-camera");
     async function startBackgroundCamera() {
       try {
