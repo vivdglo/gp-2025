@@ -23,7 +23,7 @@
       filter: contrast(1.15) saturate(1.2) hue-rotate(-12deg) brightness(1.03);
     }
 
-    /* Minimal rich blue overlay (kept from your old rich page) */
+
     .rich-blue-filter {
       position: absolute;
       inset: 0;
@@ -33,7 +33,6 @@
       mix-blend-mode: screen;
     }
 
-    /* === Panels (same as old rich) === */
     .panel {
       background: rgba(0, 0, 0, 0.42);
       border: 1px solid rgba(255, 255, 255, 0.12);
@@ -54,7 +53,7 @@
       margin-bottom: 0.9rem;
     }
 
-    /* === Face overlays === */
+    /*  Face  */
     #faceBox {
       position: absolute;
       border: 3px solid red;
@@ -117,11 +116,11 @@
       max-width: 92vw;
     }
 
-    /* === HUD overlay (same approach as old rich) === */
+    /* === HUD overlay  === */
     .hud {
       position: absolute;
       inset: 0;
-      z-index: 4; /* above blue filter, below face box/tag */
+      z-index: 4; /* above blue filter, below face box */
       display: flex;
       justify-content: space-between;
       padding: 4vh 4vw;
@@ -170,9 +169,9 @@
     .organ-row span { white-space: nowrap; }
 
     /* Heart pulse animation to attract attention */
-/* Stronger pulse for the heart icon */
+
 .pulse-heart {
-  animation: heartPulse 0.95s ease-in-out infinite; /* faster */
+  animation: heartPulse 0.95s ease-in-out infinite; /* speed */
   transform-origin: center;
   will-change: transform;
   filter: saturate(1.25) drop-shadow(0 0 18px rgba(255, 0, 0, 0.45));
@@ -189,7 +188,7 @@
   border: 2px solid rgba(255, 0, 0, 0.85);
   border-radius: 1rem;
   padding: 0.75rem 0.9rem;
-  background: rgba(0, 0, 0, 0.18); /* subtle, keeps it hollow */
+  background: rgba(0, 0, 0, 0.18); /* keeps it hollow */
 }
 
 /* Make the cardiac text red + bigger */
@@ -200,7 +199,7 @@
   letter-spacing: 0.01em;
 }
 
-/* Optional: make the other organ rows slightly dimmer for contrast */
+/*  the other organ rows slightly dimmer for contrast */
 .organ-row:not(.cardiac-alert) {
   opacity: 0.88;
 }
@@ -228,7 +227,7 @@
       width: 18px;
       height: 18px;
       border-radius: 999px;
-      background: rgb(128, 0, 32); /* same red family as your UI */
+      background: rgb(128, 0, 32); 
       color: white;
       font-weight: 800;
       font-size: 12px;
@@ -244,7 +243,7 @@
   justify-content: flex-start;
   gap: 0.9rem;
 
-  min-height: 280px;   /* NEW */
+  min-height: 280px;   
 }
 
 .agent-content {
@@ -270,8 +269,8 @@
   line-height: 1.6;
   color: rgba(255,255,255,0.95);
 
-  max-height: 220px;     /* keeps layout clean */
-  overflow: auto;        /* scroll if needed */
+  max-height: 220px;     
+  overflow: auto;       
   padding-right: 0.25rem;
 }
 /* AI AGENT ALERT STATES */
@@ -291,7 +290,6 @@
 }
 
 .agent-panel { flex: 1; }
-
 
 
     .agent-message p { margin: 0 0 0.75rem 0; }
@@ -320,7 +318,7 @@
   line-height: 1;
   text-align: left;
 
-  /* subtle emphasis */
+
   text-shadow: 0 0 18px rgba(255, 255, 255, 0.12);
 }
 
@@ -365,7 +363,6 @@
           <span>Respiratory — 89%</span>
         </div>
 
-        <!-- HEART: pulse + 15% -->
         <div class="organ-row cardiac-alert">
             <img src="assets/organ-heart.png" alt="Heart" class="pulse-heart">
             <span class="cardiac-text">Cardiac — 15%</span>
@@ -393,7 +390,6 @@
         </div>
       </div>
 
-      <!-- RIGHT SIDE: analysis, recommendation, agent -->
 <!-- RIGHT SIDE: timer, recommendation, agent -->
 <div class="hud-right">
 
@@ -488,7 +484,6 @@ function startAmbulanceTimerOnce() {
   if (ambulanceTimerStarted) return;
   ambulanceTimerStarted = true;
 
-  // render immediately so user sees it switch to "active"
   renderAmbulanceTimer();
 
   ambulanceIntervalId = setInterval(() => {

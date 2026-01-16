@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Healthcare of money</title>
+  <title>Healthcare of 2050</title>
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="mediaqueries.css" />
 </head>
@@ -33,7 +33,7 @@
     </div>
   </section>
 
-  <!-- NEW: bottom version selector -->
+  <!-- bottom version selector -->
   <div class="version-switch" aria-label="Prototype version selector">
     <button id="v1Btn" class="version-btn is-active" type="button">Version 1</button>
     <button id="v2Btn" class="version-btn" type="button">Version 2</button>
@@ -57,7 +57,7 @@
       valueDisplay.textContent = value;
     });
 
-    // NEW: version state (default Version 1)
+    // version state (default Version 1)
     let selectedVersion = 1;
 
     const v1Btn = document.getElementById("v1Btn");
@@ -77,13 +77,12 @@
     function handleSend() {
   const isPremium = value >= 3000;
 
-  // Version 1 targets (existing)
+  // Version 1 
   const v1Premium = "camera-rich.html";
   const v1Basic   = "camera.html";
 
-  // Version 2 targets (new logic requested)
-  // - Basic should reuse Version 1 basic page
-  // - Premium should go to a minimal blue-hue camera page
+  // Version 2  
+
   const v2Premium = "camera-rich-v2.html";
   const v2Basic   = "camera.html"; // same as Version 1 basic
 
